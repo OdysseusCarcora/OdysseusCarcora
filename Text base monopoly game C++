@@ -1,0 +1,469 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <array>
+#include <iomanip>
+#include<cstdlib>
+#include <ctime>
+#include<functional>
+#include <algorithm>
+#include <stdlib.h>
+using namespace std;
+
+
+int rollDice() {
+    srand(time(nullptr)); // seed the random number generator
+    int die1 = rand() % 6 + 1; // roll first die
+    int die2 = rand() % 6 + 1; // roll second die
+    return die1 + die2; // return the sum of the dice
+}
+
+class Space {
+public:
+    Space(const std::string& name, int cost = 0, int rent = 0)
+        : name(name), cost(cost), rent(rent), owner(-1) {}
+
+
+    const std::string& getName() const {
+        return name;
+    }
+
+    int getCost() const {
+        return cost;
+    }
+    int getRent() const {
+        return rent;
+    }
+    int getOwner() const {
+        return owner;
+    }
+
+    void setOwner(int playerIndex) {
+        owner = playerIndex;
+    }
+
+private:
+    std::string name;
+    int cost;
+    int rent;
+    int owner;
+};
+
+
+class Board {
+public:
+    Board() {
+        initializeBoard();
+    }
+
+  
+void createGrid(array<array<string, 8>, 8>& grid) {
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {  
+            if (i == 0 || i == 7 || j == 0 || j == 7) {  
+                int pos = getBoardPosition(i, j, 8);
+                grid[i][j] = spaces[pos].getName();
+            } else {
+                grid[i][j] = "";
+            }
+        }
+    }
+}
+void world_grid(array<array<string, 8>, 8>& spaces) {
+    cout << "-------------------------------------------------------------------------------------------------" << endl;
+    for (int i = 0; i < spaces.size(); i++) {
+        if (i == 0 || i == spaces.size() - 1) {
+            for (int j = 0; j < spaces[0].size(); j++) {
+                cout << "| " << setw(10) << left << spaces[i][j];
+            }
+            cout << "|";
+            cout << endl << "-------------------------------------------------------------------------------------------------" << endl;
+        } else {
+            cout << "|" << setw(10) << left << spaces[i][0] << "|";
+            for (int j = 1; j < spaces[0].size() - 1; j++) {
+                cout <<"  "<< setw(10)<<' ';
+            }
+            cout << "| " << setw(10) << left << spaces[i][spaces[0].size() - 1] << "|";
+            if (i !=3 && i<6) {
+                cout << endl << "------------                                                                        -------------" << endl;
+            } else {
+                cout << endl;
+            }
+          if(i==6){
+            cout << "-------------------------------------------------------------------------------------------------" << endl;
+          }
+          if(i==3){
+            cout << "------------                           M O N O P O L Y                              -------------" << endl;
+          }
+        }
+    }
+ 
+}
+const Space& getSpaceAt(int position) const {
+        return spaces[position];
+    }
+
+
+private:
+    int SIZE = 8;
+
+std::vector<Space> spaces;
+
+   
+void initializeBoard() {
+
+
+     spaces = {
+            Space("Go"), Space("A1", 60,20), Space("Chest"), Space("A2", 60,20), Space("Tax"),
+            Space("Railroad1",200,40), Space("B1", 100,15), Space("Chance"), Space("Chance"),
+            Space("Jail"), Space("C1",120,18), Space("Utility1",150,20), Space("C2", 140,15),
+            Space("C3", 160,30), Space("Chest"), Space("D1", 180,35), Space("Chest"),
+            Space("D2", 180,32), Space("E1", 220,25), Space("Chance"),
+            Space("E2", 220,50), Space("E3",240,60), Space("Railroad2",200,50), Space("F1",260,60),
+            Space("F2", 260,65), Space("Utility2",150,20), Space("F3", 280,70), Space("Go to Jail")
+        };
+}
+
+      
+int getBoardPosition(int i, int j, int size) {
+    if (i == 0) {
+        return j;
+    } else if (j == size - 1) {
+        return size + i - 1;
+    } else if (i == size - 1) {
+        return 3 * size - j - 3;
+    } else {
+        return 4 * size - i - 4;
+    }
+}
+
+
+
+};
+
+class Player {
+public:
+    Player(const string& name, int startingMoney) : name(name), money(startingMoney), position(0) {}
+
+    const string& getName() const { return name; }
+    int getMoney() const { return money; }
+    int getPosition() const { return position; }
+
+    void addMoney(int amount) { money += amount; }
+    void subtractMoney(int amount) { money -= amount; }
+   
+void move(int spaces) {
+        prevPosition = position;
+        position = (position + spaces) % 28; // Update the player's position on the board
+        
+        // Check if the player has passed or landed on the "Go" space (position 0)
+        if (prevPosition > position) {
+            addMoney(20);
+        }
+    }
+ bool isInJail() const { return inJail; }
+  void setInJail(bool value) { inJail = value; }
+
+    int rollDiceAndMove() {
+        int roll = rollDice();
+        move(roll);
+       return roll;
+    }
+ bool operator==(const Player& other) const {
+        return name == other.name;
+    }
+
+private:
+    string name;
+    int money;
+    int position;
+int prevPosition;
+   bool inJail = false;
+    int rollDice() {
+       
+        int die1 = rand() % 6 + 1; // roll first die
+        int die2 = rand() % 6 + 1; // roll second die
+        return die1 + die2; // return the sum of the dice
+    }
+
+};
+
+
+class Card {
+public:
+    enum class CardType { CHANCE, COMMUNITY_CHEST };
+
+    Card(const string& description, CardType type) : description(description), type(type) {}
+
+    const string& getDescription() const { return description; }
+    CardType getType() const { return type; }
+
+    virtual void applyAction(Player& player) const = 0; // virtual function to be overridden in derived classes
+
+private:
+    string description;
+    CardType type;
+};
+
+class ChanceCard : public Card {
+public:
+    ChanceCard(const string& description, std::function<void(Player&)> action)
+        : Card(description, CardType::CHANCE), action(action) {}
+
+    void applyAction(Player& player) const override {
+        action(player);
+    }
+
+private:
+    std::function<void(Player&)> action;
+};
+
+vector<ChanceCard> createChanceCards() {
+    vector<ChanceCard> chanceCards = {
+        ChanceCard("Advance to Go (Collect $20)", [](Player& player) {
+            //player.move(0);
+          player.move(-player.getPosition());
+          
+        }),
+        ChanceCard("Advance to B1", [](Player& player) {
+            int currentPosition = player.getPosition();
+            int b1Position = 6; // B1 is at position 6
+            int spacesToMove = (b1Position - currentPosition + 28) % 28;
+            player.move(spacesToMove);
+        }),
+ChanceCard("Advance to C1", [](Player& player) {
+            int currentPosition = player.getPosition();
+            int C1Position = 11; // B1 is at position 6
+            int spacesToMove = (C1Position - currentPosition + 28) % 28;
+            player.move(spacesToMove);
+        }),
+ ChanceCard("WOW,Your MAMA gave you an allowance and put you in jail", [](Player& player) {
+            player.addMoney(20);
+   int currentPosition = player.getPosition();
+            int Gojail_Position = 9; // B1 is at position 6
+            int spacesToMove = (Gojail_Position - currentPosition + 28) % 28;
+            player.move(spacesToMove);
+        }),
+        ChanceCard("Pay $100 fine", [](Player& player) {
+            player.subtractMoney(100);
+        }),
+  ChanceCard("look!,a Thief took $50 from your wallet", [](Player& player) {
+    player.subtractMoney(50);
+}),
+        ChanceCard("Move back 3 spaces", [](Player& player) {
+              int spacesToMoveBack = 28 - 3; // There are 28 spaces in total, move back 3 spaces
+           player.move(spacesToMoveBack);
+        }),
+       
+  
+  ChanceCard("Advance to the nearest Railroad", [](Player& player) {
+    int position = player.getPosition();
+    int railroadPositions[] = {5, 22}; // Railroad positions on the board
+
+    int RailroadDistance1 = railroadPositions[0];
+    int RailroadDistance2 = railroadPositions[1];
+    int distanceToNearest1 = abs(RailroadDistance1 - position);
+    int distanceToNearest2 = abs(RailroadDistance2 - position);
+     if (distanceToNearest2<distanceToNearest1)
+     {
+       int nearestRailroad = RailroadDistance2;
+       int spacesToMove = (nearestRailroad - position + 28) % 28;
+       player.move(spacesToMove);
+     }
+    else{
+     int nearestRailroad = RailroadDistance1;
+      int spacesToMove = (nearestRailroad - position + 28) % 28;
+      player.move(spacesToMove);
+    }
+
+    
+}),
+   
+    };
+
+    return chanceCards;
+}
+
+
+class ChestCard : public Card {
+public:
+    ChestCard(const string& description, std::function<void(Player&)> action)
+        : Card(description, CardType::COMMUNITY_CHEST), action(action) {}
+
+    void applyAction(Player& player) const override {
+        action(player);
+    }
+
+private:
+    std::function<void(Player&)> action;
+};
+
+vector<ChestCard> createChestCards(vector<Player>& players) {
+    vector<ChestCard> chestCards = {
+        ChestCard("Bank error in your favor. Collect $20.", [](Player& player) {
+            player.addMoney(20);
+        }),
+        ChestCard("Doctor's fees. Pay $100.", [](Player& player) {
+            player.subtractMoney(100);
+        }),
+        ChestCard("It's your birthday! Collect $10 from each player.", [&players](Player& player) {
+            // Add logic to collect $10 from each player
+          for (auto& otherPlayer : players) {
+        if (otherPlayer.getName() != player.getName()) {
+            otherPlayer.subtractMoney(10);
+            player.addMoney(10);
+        }
+    }
+        }),
+        ChestCard("Income Tax refund. Collect $10.", [](Player& player) {
+            player.addMoney(10);
+        }),
+        ChestCard("Life Insurance matures. Collect $30.", [](Player& player) {
+            player.addMoney(30);
+        }),
+        ChestCard("Pay Hospital fees of $200.", [](Player& player) {
+            player.subtractMoney(200);
+        }),
+        ChestCard("Receive $25 consultancy fee.", [](Player& player) {
+            player.addMoney(25);
+        }),
+        ChestCard("You are assessed for street repairs. Pay $80.", [](Player& player) {
+            player.subtractMoney(80);
+        }),
+        ChestCard("You won the second prize in a beauty contest. Collect $10.", [](Player& player) {
+            player.addMoney(10);
+        }),
+        ChestCard("You inherit $80.", [](Player& player) {
+            player.addMoney(80);
+        }),
+        ChestCard("From sale of stock, you get $50.", [](Player& player) {
+            player.addMoney(50);
+        }),
+        ChestCard("Holiday Fund matures. Receive $40.", [](Player& player) {
+            player.addMoney(40);
+        }),
+    };
+
+    return chestCards;
+}
+
+class Game {
+public:
+    Game() {
+        srand(time(nullptr));
+        board.createGrid(grid);
+        board.world_grid(grid);
+    }
+
+    void startGame() {
+        initializePlayers();
+        playGame();
+    }
+
+private:
+    Board board;
+    array<array<string, 8>, 8> grid;
+    vector<Player> players;
+    vector<ChanceCard> chanceCards = createChanceCards();
+    vector<ChestCard> chestCards = createChestCards(players);
+    int numberOfPlayers;
+
+    void initializePlayers() {
+        cout << "Enter the number of players: ";
+        cin >> numberOfPlayers;
+        cin.ignore();
+
+        for (int i = 0; i < numberOfPlayers; ++i) {
+            string playerName;
+            cout << "Please enter the name of player " << (i + 1) << ": ";
+            getline(cin, playerName);
+            players.push_back(Player(playerName, 1500));
+        }
+    }
+
+void playGame() {
+        int currentPlayer = 0;
+        char choice;
+        do {
+          Player& player = players[currentPlayer]; // Get the current player
+        int roll = player.rollDiceAndMove(); // Roll the dice and move the player
+        cout << "Player " << player.getName() << " rolled a " << roll << "." << endl;
+
+        if (player.isInJail()) {
+            player.setInJail(false); // Release the player from jail after one round
+            currentPlayer = (currentPlayer + 1) % numberOfPlayers; // Increment the current player and reset to zero if needed
+            continue; // Skip the turn
+        }
+
+        int position = player.getPosition(); // Get the player's new position
+        const Space& space = board.getSpaceAt(position); // Get the corresponding space on the board
+
+        cout << "Current money: " << player.getMoney() << endl;
+          
+        if (space.getName() == "Chance") {
+            int cardIndex = rand() % chanceCards.size();
+            const ChanceCard& chanceCard = chanceCards[cardIndex];
+
+            cout << "Player " << player.getName() << " drew a Chance card: " << chanceCard.getDescription() << endl;
+            chanceCard.applyAction(player);
+        } else if (space.getName() == "Chest") {
+            int cardIndex = rand() % chestCards.size();
+            const ChestCard& chestCard = chestCards[cardIndex];
+
+            cout << "Player " << player.getName() << " drew a Community Chest card: " << chestCard.getDescription() << endl;
+            chestCard.applyAction(player);
+        } else if (space.getName() == "Tax") {
+            cout << "Player " << player.getName() << " landed on " << space.getName() << ". Pay $200 as tax." << endl;
+            player.subtractMoney(200);
+        } else if (space.getName() == "Go to Jail") {
+            cout << "Player " << player.getName() <<" has been sent to jail and will skip the next turn." << endl;
+player.setInJail(true);
+player.move(9); // Move the player to the jail position
+} else {
+int currentPlayerIndex = distance(players.begin(), find(players.begin(), players.end(), player));
+  if (space.getOwner() == -1 && space.getCost() > 0) {
+            cout << "Player " << player.getName() << " landed on " << space.getName() << ". Cost: $" << space.getCost() << endl;
+            cout << "Do you want to buy this property? (y/n): ";
+            char buy;
+            cin >> buy;
+
+            if (buy == 'y' || buy == 'Y') {
+                player.subtractMoney(space.getCost());
+                const_cast<Space&>(space).setOwner(currentPlayerIndex);
+                cout << "You bought " << space.getName() << " for $" << space.getCost() << "." << endl;
+            }
+        } else if (space.getOwner() != -1 && space.getOwner() != currentPlayerIndex) {
+            cout << "Player " << player.getName() << " landed on " << space.getName() << ". It is owned by Player " << players[space.getOwner()].getName() << "." << endl;
+            cout << "You must pay rent of $" << space.getRent() << "." << endl;
+            player.subtractMoney(space.getRent());
+            players[space.getOwner()].addMoney(space.getRent());
+            cout << "You paid $" << space.getRent() << " to Player " << players[space.getOwner()].getName() << "." << endl;
+        } else {
+            cout << "Player " << player.getName() << " landed on " << space.getName() << "." << endl;
+        }
+    }
+
+    cout << "Player " << player.getName() << " has $" << player.getMoney() << " remaining." << endl;
+cout<<"------------------------------"<<endl;
+    if (player.getMoney() <= 0) {
+        cout << "Player " << player.getName() << " is bankrupt! Game over!" << endl;
+        cout << "Thank you for playing!" << endl;
+        break;
+    }
+
+    currentPlayer = (currentPlayer + 1) % numberOfPlayers; // Increment the current player and reset to zero if needed
+    cout << "Do you want to roll? (y/n): ";
+    cin >> choice;
+    cin.ignore();
+        } while (tolower(choice) == 'y');
+    }
+};
+
+
+
+int main()
+{
+  Game game;
+    game.startGame();
+    return 0;
+}
